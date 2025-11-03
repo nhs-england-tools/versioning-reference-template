@@ -137,7 +137,7 @@ Follow these steps to create and configure a minimal‑permission GitHub App tha
 
    - Click _Install App_ on the App page
    - Choose your user account
-   - Select _Only select repositories_ → picking this repository is recommended or _All repositories_ for broader scope-only if necessary
+   - Select _Only select repositories_ → picking this repository is recommended
 
 4. Add repository variables & secrets
 
