@@ -110,7 +110,7 @@ jobs:
           IMAGE_NAME: ghcr.io/${{ github.repository }}
           VERSION: ${{ steps.release.outputs.new_release_version }}
         run: |
-          wget https://github.com/sigstore/cosign/releases/latest/download/cosign-linux-amd64
+          wget --no-verbose https://github.com/sigstore/cosign/releases/latest/download/cosign-linux-amd64
           sudo mv cosign-linux-amd64 /usr/local/bin/cosign
           sudo chmod +x /usr/local/bin/cosign
           echo "$COSIGN_PRIVATE_KEY" > cosign.key
