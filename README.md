@@ -34,6 +34,7 @@ This aligns directly with NHS ongoing work to strengthen the security posture of
   - [Prerequisites](#prerequisites)
     - [GitHub App setup](#github-app-setup)
     - [Bot setup for commit signing](#bot-setup-for-commit-signing)
+    - [Container image signing with Cosign](#container-image-signing-with-cosign)
   - [Design decisions and rationale](#design-decisions-and-rationale)
     - [🧩 Why use a GitHub App Token instead of a Personal Access Token (PAT)](#-why-use-a-github-app-token-instead-of-a-personal-access-token-pat)
     - [🔐 Why the signing key belongs to a bot, not the App](#-why-the-signing-key-belongs-to-a-bot-not-the-app)
@@ -103,6 +104,9 @@ Repository secrets provide the credentials and cryptographic materials required 
 - `GH_VERSIONING_APP_PRIVATE_KEY` - the GitHub App's private key used to create short-lived auth tokens
 - `GIT_SIGNING_BOT_GPG_PRIVATE_KEY` - private signing key of your release bot
 - `GIT_SIGNING_BOT_GPG_PASSPHRASE` - the key passphrase
+- `COSIGN_PUBLIC_KEY`
+- `COSIGN_PRIVATE_KEY`
+- `COSIGN_PASSWORD`
 
 All of the above variables and secrets have an organisation-wide equivalent managed centrally by the NHS GitHub Admins. These defaults are automatically available to all repositories, ensuring consistent configuration, simplified onboarding, and alignment with NHS engineering and security standards.
 
@@ -190,6 +194,29 @@ Steps:
    - Add the variables and secrets listed above in the [Configuration](#configuration) section
 
 After that, all commits made by the workflow will appear as _"Verified ✅"_ on GitHub.
+
+### Container image signing with Cosign
+
+In addition to commit signing, this repository also demonstrates how to sign and verify container images using Sigstore Cosign. Cosign provides cryptographic assurance that every published image originates from a trusted workflow and has not been altered after build. Each image pushed to the GitHub Container Registry (GHCR) is automatically signed as part of the release workflow. This produces tamper-evident OCI artefacts stored alongside the image, allowing anyone to independently verify its provenance. There are the following benefits:
+
+- End-to-end provenance, extends the trusted chain of custody from commit to container
+- Tamper evidence, every signature includes cryptographic metadata that cannot be forged or moved between images
+- Transparency, the signature is also recorded in the public Sigstore Rekor transparency log for immutable auditability
+- Alignment with NHS Secure by Design, strengthens cyber resilience by ensuring only verified and trusted artefacts reach production
+
+To verify a signed image:
+
+```bash
+cosign verify --key cosign.pub ghcr.io/{{ repository }}:{{ version }}
+```
+
+The output confirms that:
+
+- the signature matches the published public key,
+- the digest corresponds to the exact build produced by the workflow, and
+- the signature is recorded in the transparency log if enabled.
+
+This ensures that every deployment can be proven authentic and traceable, a core requirement for secure software supply-chain assurance within NHS.
 
 ## Design decisions and rationale
 
