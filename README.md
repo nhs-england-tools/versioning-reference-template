@@ -8,7 +8,9 @@ The aim is to help engineering teams:
 - Deliver software faster and more safely
 - Follow consistent engineering practices that scale across NHS products
 
-Whether you're a developer, tester, or tech lead, this repository shows how you can go from _commit → version → release → deploy_ without ever losing confidence in what's running in production.
+Whether you're a developer, tester, or tech lead, this repository shows how you can go from _commit → version → deploy → release_ without ever losing confidence in what's running in production.
+
+This approach also lays the foundation for [feature toggling](https://github.com/NHSDigital/software-engineering-quality-framework/blob/main/practices/feature-toggling.md), where new functionality is deployed but not immediately exposed to users. Versioning provides the traceability and control needed to manage these toggled changes safely, allowing teams to ship small, reversible updates, test them in production, and enable them gradually when ready.
 
 > [!IMPORTANT]
 > This repository is not intended to be used standalone. It should be built on top of and complement the [NHS Repository Template](https://github.com/nhs-england-tools/repository-template), which defines the required baseline structure and configuration for all new repositories within the organisation.
