@@ -15,6 +15,7 @@ permissions:
   packages: write
   pull-requests: write # optional
   id-token: write
+  attestations: write
 
 jobs:
   publish:
@@ -130,6 +131,8 @@ jobs:
         with:
           subject-name: ghcr.io/${{ github.repository }}
           subject-digest: ${{ steps.build.outputs.image-digest }}
+          push-to-registry: false
+          show-summary: true
 
       - name: "📝 Update release notes with image info"
         if: steps.release.outputs.new_release_published == 'true'
