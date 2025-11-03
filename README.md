@@ -1,4 +1,4 @@
-# 🚀 Versioning Reference Template
+# 🚀 Versioning (Release) Reference Template
 
 This repository demonstrates how to make modern, safe, and automated versioning easy to understand and adopt. It shows how any team can go from a manual, error-prone "version bump and tag" workflow to a fully automated release pipeline that handles versioning, tagging, changelogs, container publishing, and signing - all in a transparent and auditable way.
 
@@ -10,12 +10,20 @@ The aim is to help engineering teams:
 
 Whether you're a developer, tester, or tech lead, this repository shows how you can go from _commit → version → deploy → release_ without ever losing confidence in what's running in production.
 
-This approach also lays the foundation for [feature toggling](https://github.com/NHSDigital/software-engineering-quality-framework/blob/main/practices/feature-toggling.md), where new functionality is deployed but not immediately exposed to users. Versioning provides the traceability and control needed to manage these toggled changes safely, allowing teams to ship small, reversible updates, test them in production, and enable them gradually when ready.
+This approach also lays the foundation for [feature toggling](https://github.com/NHSDigital/software-engineering-quality-framework/blob/main/practices/feature-toggling.md) where new functionality is deployed but not immediately exposed to users. Versioning provides the traceability and control needed to manage these toggled changes safely, allowing teams to ship small, reversible updates, test them in production, and enable them gradually when ready.
+
+Beyond automation and feature management, this template also provides base for secure software supply chain practices, including artefact hardening and provenance. By producing signed, tamper-evident build outputs (such as container images and packages) with a clear chain of custody, teams can:
+
+- Strengthen cyber resilience by ensuring only verified and trusted artefacts reach production
+- Improve incident response through auditable traceability from code to deployed artefact
+- Reduce the risk of supply-chain compromise by verifying every component's source, build process, and integrity
+
+This aligns directly with NHS ongoing work to strengthen the security posture of workloads and artefact provenance, ensuring that every deployment is both secure by design and provable by evidence.
 
 > [!IMPORTANT]
 > This repository is not intended to be used standalone. It should be built on top of and complement the [NHS Repository Template](https://github.com/nhs-england-tools/repository-template), which defines the required baseline structure and configuration for all new repositories within the organisation.
 
-- [🚀 Versioning Reference Template](#-versioning-reference-template)
+- [🚀 Versioning (Release) Reference Template](#-versioning-release-reference-template)
   - [Overview](#overview)
   - [Structure](#structure)
     - [Repository files](#repository-files)
