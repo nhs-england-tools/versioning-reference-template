@@ -1,6 +1,6 @@
-# 🚀 Release Template
+# 🚀 Versioning Reference Template
 
-This repository demonstrates how to make modern, safe, and automated releases easy to understand and adopt. It shows how any team can go from a manual, error-prone "version bump and tag" workflow to a fully automated release pipeline that handles versioning, tagging, changelogs, container publishing, and signing - all in a transparent and auditable way.
+This repository demonstrates how to make modern, safe, and automated versioning easy to understand and adopt. It shows how any team can go from a manual, error-prone "version bump and tag" workflow to a fully automated release pipeline that handles versioning, tagging, changelogs, container publishing, and signing - all in a transparent and auditable way.
 
 The aim is to help engineering teams:
 
@@ -13,7 +13,7 @@ Whether you're a developer, tester, or tech lead, this repository shows how you 
 > [!IMPORTANT]
 > This repository is not intended to be used standalone. It should be built on top of and complement the [NHS Repository Template](https://github.com/nhs-england-tools/repository-template), which defines the required baseline structure and configuration for all new repositories within the organisation.
 
-- [🚀 Release Template](#-release-template)
+- [🚀 Versioning Reference Template](#-versioning-reference-template)
   - [Overview](#overview)
   - [Structure](#structure)
     - [Repository files](#repository-files)
@@ -52,7 +52,7 @@ On every push or merged pull request to the `main` branch, this workflow:
 7. Logs in to GitHub Container Registry (GHCR)
 8. Builds and pushes a versioned container image
 
-👉 **Result**: every release is predictable, traceable, and fully automated, with no need to manually tag, bump, or write changelogs.
+👉 **Result**: every version is predictable, traceable, and fully automated, with no need to manually tag, bump, or write changelogs.
 
 ## Structure
 
@@ -82,28 +82,30 @@ That's it - a clean, logical pipeline that turns commit messages into traceable 
 
 Repository variables define the static configuration needed by the workflow:
 
-- `GH_APP_ID` - the numeric ID of the GitHub App
-- `GIT_SIGN_BOT_NAME` - display name used for the signed commits
-- `GIT_SIGN_BOT_EMAIL` - email address linked to the uploaded GPG key
+- `GH_VERSIONING_APP_ID` - the numeric ID of the GitHub App
+- `GIT_SIGNING_BOT_NAME` - display name used for the signed commits
+- `GIT_SIGNING_BOT_EMAIL` - email address linked to the uploaded GPG key
 
 #### Secrets
 
 Repository secrets provide the credentials and cryptographic materials required to sign releases:
 
-- `GH_APP_PRIVATE_KEY` - the GitHub App's private key used to create short-lived auth tokens
-- `GIT_SIGN_BOT_GPG_PRIVATE_KEY` - private signing key of your release bot
-- `GIT_SIGN_BOT_GPG_PASSPHRASE` - the key passphrase
+- `GH_VERSIONING_APP_PRIVATE_KEY` - the GitHub App's private key used to create short-lived auth tokens
+- `GIT_SIGNING_BOT_GPG_PRIVATE_KEY` - private signing key of your release bot
+- `GIT_SIGNING_BOT_GPG_PASSPHRASE` - the key passphrase
+
+All of the above variables and secrets has an orgnisation-wide
 
 ## Prerequisites
 
 ### GitHub App setup
 
-Follow these steps to create and configure a minimal‑permission GitHub App that will authenticate the release workflow. This should be done for you by the NHS GitHub Admins. Although, you can perform this setup yourself for testing.
+Follow these steps to create and configure a minimal‑permission GitHub App that will authenticate the release workflow. This should be done for you by the NHS GitHub Admins. However, you can perform this setup yourself for testing purposes.
 
 1. Create the App
 
    - Go to [GitHub App settings](https://github.com/settings/apps) user _Settings → Developer Settings → GitHub Apps → New GitHub App_
-   - Name it something like _"My Release App"_ (must be globally unique)
+   - Name it something like _"My Versioning App"_ (must be globally unique)
    - Set the homepage URL to your repository
    - Configure permissions
      - Repository permissions:
@@ -119,7 +121,7 @@ Follow these steps to create and configure a minimal‑permission GitHub App tha
 
    - After saving, click _Generate a private key_
    - Copy the full `.pem` file contents (including BEGIN/END lines)
-   - Store it securely, you'll need it to populate `GH_APP_PRIVATE_KEY`
+   - Store it securely, you'll need it to populate `GH_VERSIONING_APP_PRIVATE_KEY`
 
 3. Install the App
 
@@ -143,8 +145,8 @@ Follow these steps to create and configure a minimal‑permission GitHub App tha
    - name: Generate GitHub App token
    uses: actions/create-github-app-token@v2
    with:
-       app-id: ${{ vars.GH_APP_ID }}
-       private-key: ${{ secrets.GH_APP_PRIVATE_KEY }}
+       app-id: ${{ vars.GH_VERSIONING_APP_ID }}
+       private-key: ${{ secrets.GH_VERSIONING_APP_PRIVATE_KEY }}
    ```
 
 ### Bot setup for commit signing
@@ -156,7 +158,7 @@ Steps:
 1. Generate a key locally:
 
    ```bash
-   gpg --quick-generate-key "Release Bot <your-email@users.noreply.github.com>" ed25519 sign 1m
+   gpg --quick-generate-key "My Signing Bot <your-email@users.noreply.github.com>" ed25519 sign 1m
 
    ID=XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX # your key ID
    ```
@@ -195,7 +197,7 @@ Using a GitHub App offers significant security and governance advantages:
 
 In practice, this means safer automation with better traceability and compliance.
 
-Using one bot for an organisation is fine and common in the industry. In a large organisation it's standard practice to maintain a single shared bot identity whose purpose is:
+Using a single shared bot for an organisation is common practice across the industry. In a large organisation it's standard practice to maintain a single shared bot identity whose purpose is:
 
 - signing commits/tags
 - authoring automated release or dependency commits
@@ -218,7 +220,7 @@ GitHub verifies GPG and SSH signatures against user or bot accounts, not apps. B
 - Independent key rotation, the key can be rotated or revoked without affecting personal accounts
 - Consistent auditing, every release is traceable to a single, identifiable automation user
 
-The public GPG key must be uploaded to the GitHub profile of the account listed in `GIT_SIGN_BOT_EMAIL`. This allows GitHub to associate the cryptographic signature with that bot's identity and display it as _"Verified"_.
+The public GPG key must be uploaded to the GitHub profile of the account listed in `GIT_SIGNING_BOT_EMAIL`. This allows GitHub to associate the cryptographic signature with that bot's identity and display it as _"Verified"_.
 
 In large organisations, it is entirely appropriate and often preferable to use one shared bot account for signing commits and performing automated releases. This approach reduces key management overhead, simplifies auditing, and provides a single trusted automation identity across all repositories.
 
@@ -278,7 +280,7 @@ Other semver-valid formats such as `1.2.3+api` or `api_v1.2.3` were evaluated, b
   - Under _Manage Actions access_, the repository appears in the list and the Role is set to Admin
   - _Inherit access from source repository_ is enabled
   - The package visibility matches the repository's visibility (private or public)
-- The GitHub App used for releases does not require Packages accessas that capability comes from the ephemeral ${{ github.token }} used inside the workflow
+- The GitHub App used for releases does not require Packages access as that capability comes from the ephemeral `${{ github.token }}` used inside the workflow
 - However, the workflow itself must request the correct token scopes which must include `packages: write`
 - Use `${{ github.token }}` instead of the legacy `${{ secrets.GITHUB_TOKEN }}`, the former is guaranteed to exist in all workflow contexts and is the modern standard
 - In _repository → Settings → Actions → General_, ensure the following are configured:
@@ -324,7 +326,7 @@ You'll see the new tag and release appear on GitHub, both signed and verified (c
 
 ### Final thought
 
-This repository isn't just a demo, it's a living template for how NHS teams can do releases properly:
+This repository isn't just a demo, it's a living reference for how NHS teams can manage automated versioning and release engineering properly:
 
 - Secure by default
 - Fully automated
@@ -335,7 +337,5 @@ If you're reading this and thinking _"I'm not sure I understand all of it"_, tha
 
 ## Outstanding
 
-- Validate that the workflow functions correctly for private repositories
-- Introduce `NHS Release App` for the enterprise available to teams on request
-- Introduce `NHS_GH_ADMINS_*` variables to provide organisation level configuration by default
-- Explore manually created nested registry packages connected to the repository, for example `ghcr.io/owner/repo/api:0.0.1`. However, this is only a nice-to-have, the preferred approach is to decompose the monorepo to support product and team autonomy when delivering services at a national scale. This is the alignment with modern DevOps and Conway's Law, promoting smaller, autonomous repositories that map to products and teams is the scalable, maintainable path for large, national services
+[ ] Validate that the workflow functions correctly for private repositories
+[ ] Explore manually created nested registry packages connected to the repository, for example `ghcr.io/owner/repo/api:0.0.1`. However, this is only a nice-to-have, the preferred approach is to decompose the monorepo to support product and team autonomy when delivering services at a national scale. This is the alignment with modern DevOps and Conway's Law, promoting smaller, autonomous repositories that map to products and teams is the scalable, maintainable path for large, national services
