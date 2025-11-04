@@ -444,3 +444,4 @@ If you're reading this and thinking _"I'm not sure I understand all of it"_, tha
 
 - [ ] Validate that the workflow functions correctly for private repositories
 - [ ] Explore manually created nested registry packages connected to the repository, for example `ghcr.io/owner/repo/api:0.0.1`. However, this is only a nice-to-have, the preferred approach is to decompose the monorepo to support product and team autonomy when delivering services at a national scale. This is the alignment with modern DevOps and Conway's Law, promoting smaller, autonomous repositories that map to products and teams is the scalable, maintainable path for large, national services
+- [ ] Provide guidance on driving continuous deployment independently of version increments, reinforcing that semantic versioning expresses contract evolution rather than deployment cadence in iterative delivery environments
