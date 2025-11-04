@@ -34,6 +34,7 @@ This aligns directly with NHS ongoing work to strengthen the security posture of
   - [Prerequisites](#prerequisites)
     - [GitHub App setup](#github-app-setup)
     - [Bot setup for commit signing](#bot-setup-for-commit-signing)
+  - [Secure by design](#secure-by-design)
     - [SBOM generation and CVE scanning](#sbom-generation-and-cve-scanning)
       - [SBOM generation](#sbom-generation)
       - [CVE scanning](#cve-scanning)
@@ -198,14 +199,15 @@ Steps:
 
 After that, all commits made by the workflow will appear as _"Verified ✅"_ on GitHub.
 
+## Secure by design
+
 ### SBOM generation and CVE scanning
 
 As part of its secure software supply-chain workflow, this repository automatically generates a Software Bill of Materials (SBOM) and performs vulnerability scanning against each released container image. These steps provide transparency into dependencies and help identify potential risks early in the delivery process.
 
 #### SBOM generation
 
-The SBOM is produced using Anchore Syft, which analyses the container image and lists all components, packages, and licences present. It is exported in the CycloneDX JSON
-format, an open, machine-readable standard widely used across industry and supported for artefact provenance.
+The SBOM is produced using Anchore Syft, which analyses the container image and lists all components, packages, and licences present. It is exported in the CycloneDX JSON format, an open, machine-readable standard widely used across industry and supported for artefact provenance.
 
 Each SBOM:
 
