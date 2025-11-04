@@ -34,7 +34,10 @@ This aligns directly with NHS ongoing work to strengthen the security posture of
   - [Prerequisites](#prerequisites)
     - [GitHub App setup](#github-app-setup)
     - [Bot setup for commit signing](#bot-setup-for-commit-signing)
-    - [Container image signing with Cosign](#container-image-signing-with-cosign)
+    - [SBOM generation and CVE scanning](#sbom-generation-and-cve-scanning)
+      - [SBOM generation](#sbom-generation)
+      - [CVE scanning](#cve-scanning)
+    - [Container image signing](#container-image-signing)
     - [Build provenance attestation](#build-provenance-attestation)
   - [Design decisions and rationale](#design-decisions-and-rationale)
     - [🧩 Why use a GitHub App Token instead of a Personal Access Token (PAT)](#-why-use-a-github-app-token-instead-of-a-personal-access-token-pat)
@@ -195,7 +198,55 @@ Steps:
 
 After that, all commits made by the workflow will appear as _"Verified ✅"_ on GitHub.
 
-### Container image signing with Cosign
+### SBOM generation and CVE scanning
+
+As part of its secure software supply-chain workflow, this repository automatically generates a Software Bill of Materials (SBOM) and performs vulnerability scanning against each released container image. These steps provide transparency into dependencies and help identify potential risks early in the delivery process.
+
+#### SBOM generation
+
+The SBOM is produced using Anchore Syft, which analyses the container image and lists all components, packages, and licences present. It is exported in the CycloneDX JSON
+format, an open, machine-readable standard widely used across industry and supported for artefact provenance.
+
+Each SBOM:
+
+- Captures the full dependency graph of the built image
+- Includes component names, versions, and licence metadata
+- Is stored as a workflow artefact for traceability and audit purposes
+
+You can manually inspect or reuse the generated SBOM from the workflow artefacts, or upload it to internal analysis tools.
+
+Example local generation:
+
+```bash
+syft ghcr.io/{{ repository }}:{{ tag }} -o cyclonedx-json > sbom.cdx.json
+```
+
+#### CVE scanning
+
+Immediately after SBOM generation, the workflow runs Anchore Grype to scan for known vulnerabilities (CVEs). This ensures that any outdated or insecure components are surfaced before deployment.
+
+The scan:
+
+- Uses the SBOM as input, guaranteeing alignment with the built artefact
+- Reports vulnerabilities with severity, package name, and fixed version (if available)
+- Fails the workflow only for severe, fixable vulnerabilities (configurable via `severity-cutoff` and `only-fixed` options)
+
+Example local scan:
+
+```bash
+grype sbom:sbom.cdx.json --only-fixed --fail-on medium
+```
+
+Benefits
+
+- Transparency, provides a full inventory of what's inside each image
+- Early risk detection, identifies CVEs before they reach runtime
+- Compliance, aligns with NHS Secure by Design and OpenSSF best practices
+- Traceability, complements provenance attestations and image signing
+
+The combination of SBOM generation and CVE scanning forms a foundational layer of continuous assurance, enabling teams to understand, trust, and maintain the security of every artefact they ship.
+
+### Container image signing
 
 In addition to commit signing, this repository also demonstrates how to sign and verify container images using Sigstore Cosign. Cosign provides cryptographic assurance that every published image originates from a trusted workflow and has not been altered after build. Each image pushed to the GitHub Container Registry (GHCR) is automatically signed as part of the release workflow. This produces tamper-evident OCI artefacts stored alongside the image, allowing anyone to independently verify its provenance. There are the following benefits:
 
@@ -207,7 +258,7 @@ In addition to commit signing, this repository also demonstrates how to sign and
 To verify a signed image:
 
 ```bash
-cosign verify --key cosign.pub ghcr.io/{{ repository }}:{{ version }}
+cosign verify --key cosign.pub ghcr.io/{{ repository }}:{{ tag }}
 ```
 
 The output confirms that:
