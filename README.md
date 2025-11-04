@@ -8,7 +8,7 @@ The aim is to help engineering teams:
 - Deliver software faster and more safely
 - Follow consistent engineering practices that scale across NHS products
 
-Whether you're a developer, tester, or tech lead, this repository shows how you can go from _commit → version → deploy → release_ without ever losing confidence in what's running in production.
+Whether you're a developer, tester, or tech lead, this repository shows how you can go from _Commit → Version → Build → Scan → Attest → Sign → Publish → Deploy → Release_ without ever losing confidence in what's running in production.
 
 This approach also lays the foundation for [feature toggling](https://github.com/NHSDigital/software-engineering-quality-framework/blob/main/practices/feature-toggling.md) where new functionality is deployed but not immediately exposed to users. Versioning provides the traceability and control needed to manage these toggled changes safely, allowing teams to ship small, reversible updates, test them in production, and enable them gradually when ready.
 
@@ -34,12 +34,6 @@ This aligns directly with NHS ongoing work to strengthen the security posture of
   - [Prerequisites](#prerequisites)
     - [GitHub App setup](#github-app-setup)
     - [Bot setup for commit signing](#bot-setup-for-commit-signing)
-  - [Secure by design](#secure-by-design)
-    - [SBOM generation and CVE scanning](#sbom-generation-and-cve-scanning)
-      - [SBOM generation](#sbom-generation)
-      - [CVE scanning](#cve-scanning)
-    - [Container image signing](#container-image-signing)
-    - [Build provenance attestation](#build-provenance-attestation)
   - [Design decisions and rationale](#design-decisions-and-rationale)
     - [🧩 Why use a GitHub App Token instead of a Personal Access Token (PAT)](#-why-use-a-github-app-token-instead-of-a-personal-access-token-pat)
     - [🔐 Why the signing key belongs to a bot, not the App](#-why-the-signing-key-belongs-to-a-bot-not-the-app)
@@ -49,6 +43,13 @@ This aligns directly with NHS ongoing work to strengthen the security posture of
       - [Why this pattern works](#why-this-pattern-works)
       - [Alternative patterns considered](#alternative-patterns-considered)
       - [Detailed configuration](#detailed-configuration)
+  - [Secure by design versioning (release)](#secure-by-design-versioning-release)
+    - [SBOM generation and CVE scanning](#sbom-generation-and-cve-scanning)
+      - [SBOM generation](#sbom-generation)
+      - [CVE scanning](#cve-scanning)
+    - [Container image signing](#container-image-signing)
+    - [Build provenance attestation](#build-provenance-attestation)
+    - [End-to-End flow](#end-to-end-flow)
   - [How to use this repository](#how-to-use-this-repository)
     - [Adding a new feature](#adding-a-new-feature)
     - [How Conventional Commits affect versioning](#how-conventional-commits-affect-versioning)
@@ -199,94 +200,6 @@ Steps:
 
 After that, all commits made by the workflow will appear as _"Verified ✅"_ on GitHub.
 
-## Secure by design
-
-### SBOM generation and CVE scanning
-
-As part of its secure software supply-chain workflow, this repository automatically generates a Software Bill of Materials (SBOM) and performs vulnerability scanning against each released container image. These steps provide transparency into dependencies and help identify potential risks early in the delivery process.
-
-#### SBOM generation
-
-The SBOM is produced using Anchore Syft, which analyses the container image and lists all components, packages, and licences present. It is exported in the CycloneDX JSON format, an open, machine-readable standard widely used across industry and supported for artefact provenance.
-
-Each SBOM:
-
-- Captures the full dependency graph of the built image
-- Includes component names, versions, and licence metadata
-- Is stored as a workflow artefact for traceability and audit purposes
-
-You can manually inspect or reuse the generated SBOM from the workflow artefacts, or upload it to internal analysis tools.
-
-Example local generation:
-
-```bash
-syft ghcr.io/{{ repository }}:{{ tag }} -o cyclonedx-json > sbom.cdx.json
-```
-
-#### CVE scanning
-
-Immediately after SBOM generation, the workflow runs Anchore Grype to scan for known vulnerabilities (CVEs). This ensures that any outdated or insecure components are surfaced before deployment.
-
-The scan:
-
-- Uses the SBOM as input, guaranteeing alignment with the built artefact
-- Reports vulnerabilities with severity, package name, and fixed version (if available)
-- Fails the workflow only for severe, fixable vulnerabilities (configurable via `severity-cutoff` and `only-fixed` options)
-
-Example local scan:
-
-```bash
-grype sbom:sbom.cdx.json --only-fixed --fail-on medium
-```
-
-Benefits
-
-- Transparency, provides a full inventory of what's inside each image
-- Early risk detection, identifies CVEs before they reach runtime
-- Compliance, aligns with NHS Secure by Design and OpenSSF best practices
-- Traceability, complements provenance attestations and image signing
-
-The combination of SBOM generation and CVE scanning forms a foundational layer of continuous assurance, enabling teams to understand, trust, and maintain the security of every artefact they ship.
-
-### Container image signing
-
-In addition to commit signing, this repository also demonstrates how to sign and verify container images using Sigstore Cosign. Cosign provides cryptographic assurance that every published image originates from a trusted workflow and has not been altered after build. Each image pushed to the GitHub Container Registry (GHCR) is automatically signed as part of the release workflow. This produces tamper-evident OCI artefacts stored alongside the image, allowing anyone to independently verify its provenance. There are the following benefits:
-
-- End-to-end provenance, extends the trusted chain of custody from commit to container
-- Tamper evidence, every signature includes cryptographic metadata that cannot be forged or moved between images
-- Transparency, the signature is also recorded in the public Sigstore Rekor transparency log for immutable auditability
-- Alignment with NHS Secure by Design, strengthens cyber resilience by ensuring only verified and trusted artefacts reach production
-
-To verify a signed image:
-
-```bash
-cosign verify --key cosign.pub ghcr.io/{{ repository }}:{{ tag }}
-```
-
-The output confirms that:
-
-- the signature matches the published public key,
-- the digest corresponds to the exact build produced by the workflow, and
-- the signature is recorded in the transparency log if enabled.
-
-This ensures that every deployment can be proven authentic and traceable, a core requirement for secure software supply-chain assurance within NHS.
-
-### Build provenance attestation
-
-To further strengthen software supply-chain assurance, this repository also demonstrates how to generate and publish build provenance attestations using the `actions/attest-build-provenance`
-GitHub Action. Provenance describes what was built, how, and by whom - providing cryptographic evidence that each artefact (for example, a container image) was produced by a trusted workflow. When enabled in the workflow, GitHub automatically creates an attestation record linked to the image digest. This record is cryptographically signed using the repository's OpenID Connect (OIDC) identity and stored securely within GitHub's Attestation store. Here are the benefits:
-
-- Verified origin, attests that an artefact was built by a specific repository and workflow run
-- Tamper resistance, signed using GitHub's OIDC token, ensuring authenticity and integrity
-- Auditable provenance, metadata such as build parameters, commit SHA, and workflow run ID are recorded immutably
-- Supply-chain compliance, aligns with [SLSA Level 2+](https://slsa.dev/spec/v1.0/levels) provenance standards
-
-The workflow must request `id-token: write` and `attestations: write` permissions to create attestations. Provenance always references the immutable image digest (sha256:...), not version tags, to ensure traceability. Attestations can be viewed and verified with the GitHub CLI:
-
-```bash
-cosign verify-attestation --key cosign.pub ghcr.io/{{ repository }}@sha256:{{ digest }}
-```
-
 ## Design decisions and rationale
 
 These explanations are meant to help you and me to understand _why_ each part of this setup exists, so none of us has to guess later.
@@ -393,6 +306,131 @@ Other semver-valid formats such as `1.2.3+api` or `api_v1.2.3` were evaluated, b
   - _Read repository contents and packages permissions_ under _Workflow permissions_
 
 This _"flat registry with tagged components"_ model scales cleanly across repositories while remaining compliant with GitHub's authentication and namespace rules. It also provides a consistent, human-readable way to publish and manage multiple container images under one project.
+
+## Secure by design versioning (release)
+
+### SBOM generation and CVE scanning
+
+As part of its secure software supply-chain workflow, this repository automatically generates a Software Bill of Materials (SBOM) and performs vulnerability scanning against each released container image. These steps provide transparency into dependencies and help identify potential risks early in the delivery process.
+
+#### SBOM generation
+
+The SBOM is produced using Anchore Syft, which analyses the container image and lists all components, packages, and licences present. It is exported in the CycloneDX JSON format, an open, machine-readable standard widely used across industry and supported for artefact provenance.
+
+Each SBOM:
+
+- Captures the full dependency graph of the built image
+- Includes component names, versions, and licence metadata
+- Is stored as a workflow artefact for traceability and audit purposes
+
+You can manually inspect or reuse the generated SBOM from the workflow artefacts, or upload it to internal analysis tools.
+
+Example local generation:
+
+```bash
+syft ghcr.io/{{ repository }}:{{ tag }} -o cyclonedx-json > sbom.cdx.json
+```
+
+#### CVE scanning
+
+Immediately after SBOM generation, the workflow runs Anchore Grype to scan for known vulnerabilities (CVEs). This ensures that any outdated or insecure components are surfaced before deployment.
+
+The scan:
+
+- Uses the SBOM as input, guaranteeing alignment with the built artefact
+- Reports vulnerabilities with severity, package name, and fixed version (if available)
+- Fails the workflow only for severe, fixable vulnerabilities (configurable via `severity-cutoff` and `only-fixed` options)
+
+Example local scan:
+
+```bash
+grype sbom:sbom.cdx.json --only-fixed --fail-on medium
+```
+
+Benefits
+
+- Transparency, provides a full inventory of what's inside each image
+- Early risk detection, identifies CVEs before they reach runtime
+- Compliance, aligns with NHS Secure by Design and OpenSSF best practices
+- Traceability, complements provenance attestations and image signing
+
+The combination of SBOM generation and CVE scanning forms a foundational layer of continuous assurance, enabling teams to understand, trust, and maintain the security of every artefact they ship.
+
+### Container image signing
+
+In addition to commit signing, this repository also demonstrates how to sign and verify container images using Sigstore Cosign. Cosign provides cryptographic assurance that every published image originates from a trusted workflow and has not been altered after build. Each image pushed to the GitHub Container Registry (GHCR) is automatically signed as part of the release workflow. This produces tamper-evident OCI artefacts stored alongside the image, allowing anyone to independently verify its provenance. There are the following benefits:
+
+- End-to-end provenance, extends the trusted chain of custody from commit to container
+- Tamper evidence, every signature includes cryptographic metadata that cannot be forged or moved between images
+- Transparency, the signature is also recorded in the public Sigstore Rekor transparency log for immutable auditability
+- Alignment with NHS Secure by Design, strengthens cyber resilience by ensuring only verified and trusted artefacts reach production
+
+To verify a signed image:
+
+```bash
+cosign verify --key cosign.pub ghcr.io/{{ repository }}:{{ tag }}
+```
+
+The output confirms that:
+
+- the signature matches the published public key,
+- the digest corresponds to the exact build produced by the workflow, and
+- the signature is recorded in the transparency log if enabled.
+
+This ensures that every deployment can be proven authentic and traceable, a core requirement for secure software supply-chain assurance within NHS.
+
+### Build provenance attestation
+
+To further strengthen software supply-chain assurance, this repository also demonstrates how to generate and publish build provenance attestations using the `actions/attest-build-provenance`
+GitHub Action. Provenance describes what was built, how, and by whom - providing cryptographic evidence that each artefact (for example, a container image) was produced by a trusted workflow. When enabled in the workflow, GitHub automatically creates an attestation record linked to the image digest. This record is cryptographically signed using the repository's OpenID Connect (OIDC) identity and stored securely within GitHub's Attestation store. Here are the benefits:
+
+- Verified origin, attests that an artefact was built by a specific repository and workflow run
+- Tamper resistance, signed using GitHub's OIDC token, ensuring authenticity and integrity
+- Auditable provenance, metadata such as build parameters, commit SHA, and workflow run ID are recorded immutably
+- Supply-chain compliance, aligns with [SLSA Level 2+](https://slsa.dev/spec/v1.0/levels) provenance standards
+
+The workflow must request `id-token: write` and `attestations: write` permissions to create attestations. Provenance always references the immutable image digest (sha256:...), not version tags, to ensure traceability. Attestations can be viewed and verified with the GitHub CLI:
+
+```bash
+cosign verify-attestation --key cosign.pub ghcr.io/{{ repository }}@sha256:{{ digest }}
+```
+
+### End-to-End flow
+
+| **Stage**   | **Description**                                                                                                                                | **Tooling / Action**                  | **Outcome**                                                                 |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- | --------------------------------------------------------------------------- |
+| **Commit**  | Engineer merges a Conventional Commit to `main` or rather creates a Pull Request to accomplish it. The release bot signs commits automatically | GitHub App + GPG                      | Verified ✅ signed commit with authorship traceability                      |
+| **Version** | Semantic version is calculated automatically based on commit messages                                                                          | `semantic-release`                    | Predictable versioning (`v1.2.3`), changelog, and tag created               |
+| **Build**   | Application is packaged into a container image                                                                                                 | OCI container (aka Docker)            | Deterministic image tagged `app-<version>` and `app-latest`                 |
+| **Scan**    | Generate SBOM and CVE scan before release                                                                                                      | Syft + Grype                          | CycloneDX SBOM + CVE visibility for compliance and early risk detection     |
+| **Attest**  | Generate build provenance attestation linking code, build, and artefact digest                                                                 | `actions/attest-build-provenance`     | Cryptographically signed 🔏 provenance record stored in GitHub Attestations |
+| **Sign**    | Sign container image and record signature in the transparency log                                                                              | Sigstore Cosign + Rekor               | Tamper-evident signature proving authenticity and integrity                 |
+| **Publish** | Push signed, attested image to registry and update release notes                                                                               | GitHub Releases + GHCR                | Trusted artefact available for downstream consumption                       |
+| **Deploy**  | Change integrated with downstream environments up to production                                                                                | GitHub Action (continuous deployment) | TBC                                                                         |
+| **Release** | Feature enabled to the end user                                                                                                                | OpenFeature (feature toggling)        | TBC                                                                         |
+
+```mermaid
+flowchart LR
+    A[Commit] --> B[Version]
+    B --> C[Build]
+    C --> D[Scan]
+    D --> E[Attest]
+    E --> F[Sign]
+    F --> G[Publish]
+    G --> H[Deploy]
+    H --> I[Release]
+
+    %% Styling
+    classDef core fill:#1f77b4,stroke:#0e3553,stroke-width:1px,color:#fff
+    classDef sec fill:#2ca02c,stroke:#124d12,stroke-width:1px,color:#fff
+    classDef audit fill:#ff7f0e,stroke:#663c00,stroke-width:1px,color:#fff
+    classDef release fill:#9467bd,stroke:#3d2a5e,stroke-width:1px,color:#fff
+
+    class A,B,C core
+    class D,E,F sec
+    class G,H audit
+    class I release
+```
 
 ## How to use this repository
 
