@@ -123,7 +123,6 @@ All of the above variables and secrets have an organisation-wide equivalent mana
 Follow these steps to create and configure a minimal‑permission GitHub App that will authenticate the release workflow. This should be done for you by the NHS GitHub Admins. However, you can perform this setup yourself for testing purposes.
 
 1. Create the App
-
    - Go to [GitHub App settings](https://github.com/settings/apps) user _Settings → Developer Settings → GitHub Apps → New GitHub App_
    - Name it something like _"My Versioning App"_ (must be globally unique)
    - Set the homepage URL to your repository
@@ -137,24 +136,20 @@ Follow these steps to create and configure a minimal‑permission GitHub App tha
    - For the installation scope choose _Only on this account_ (or organisation-wide if required)
 
 2. Generate the private key
-
    - After saving, click _Generate a private key_
    - Copy the full `.pem` file contents (including BEGIN/END lines)
    - Store it securely, you'll need it to populate `GH_VERSIONING_APP_PRIVATE_KEY`
 
 3. Install the App
-
    - Click _Install App_ on the App page
    - Choose your user account
    - Select _Only select repositories_ → picking this repository is recommended
 
 4. Add repository variables & secrets
-
    - Go to your _repository → Settings → Secrets and variables → Actions_
    - Add the variables and secrets listed above in the [Configuration](#configuration) section
 
 5. Test
-
    - Make a trivial commit e.g. `docs: test app token wiring` to `main`
    - In workflow logs confirm the _"Generate GitHub App token"_ action step succeeds
 
@@ -445,7 +440,6 @@ flowchart LR
 2. Open a Pull Request and merge it into `main`, ensure that the commit created as an effect of merging this PR contains the above message as this drives the semantic versioning
 
 3. The workflow will:
-
    - Detect that the change type is `feat` and trigger a minor version bump
    - Update the `VERSION` file
    - Commit and tag the new release
