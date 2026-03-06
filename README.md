@@ -99,7 +99,7 @@ That's it - a clean, logical pipeline that turns commit messages into traceable 
 
 Repository variables define the static configuration needed by the workflow:
 
-- `GH_VERSIONING_APP_ID` - the numeric ID of the GitHub App
+- `GH_VERSIONING_RELEASE_APP_ID` - the numeric ID of the GitHub App
 - `GIT_SIGNING_BOT_NAME` - display name used for the signed commits
 - `GIT_SIGNING_BOT_EMAIL` - email address linked to the uploaded GPG key
 
@@ -107,7 +107,7 @@ Repository variables define the static configuration needed by the workflow:
 
 Repository secrets provide the credentials and cryptographic materials required to sign releases:
 
-- `GH_VERSIONING_APP_PRIVATE_KEY` - the GitHub App's private key used to create short-lived auth tokens
+- `GH_VERSIONING_RELEASE_APP_PRIVATE_KEY` - the GitHub App's private key used to create short-lived auth tokens
 - `GIT_SIGNING_BOT_GPG_PRIVATE_KEY` - private signing key of your release bot
 - `GIT_SIGNING_BOT_GPG_PASSPHRASE` - the key passphrase
 - `COSIGN_PUBLIC_KEY`
@@ -138,7 +138,7 @@ Follow these steps to create and configure a minimal‑permission GitHub App tha
 2. Generate the private key
    - After saving, click _Generate a private key_
    - Copy the full `.pem` file contents (including BEGIN/END lines)
-   - Store it securely, you'll need it to populate `GH_VERSIONING_APP_PRIVATE_KEY`
+   - Store it securely, you'll need it to populate `GH_VERSIONING_RELEASE_APP_PRIVATE_KEY`
 
 3. Install the App
    - Click _Install App_ on the App page
@@ -159,8 +159,8 @@ Follow these steps to create and configure a minimal‑permission GitHub App tha
    - name: Generate GitHub App token
    uses: actions/create-github-app-token@v2
    with:
-       app-id: ${{ vars.GH_VERSIONING_APP_ID }}
-       private-key: ${{ secrets.GH_VERSIONING_APP_PRIVATE_KEY }}
+       app-id: ${{ vars.GH_VERSIONING_RELEASE_APP_ID }}
+       private-key: ${{ secrets.GH_VERSIONING_RELEASE_APP_PRIVATE_KEY }}
    ```
 
 ### Bot setup for commit signing
