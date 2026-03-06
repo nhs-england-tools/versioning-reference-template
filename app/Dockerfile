@@ -7,4 +7,4 @@ RUN apk add --no-cache \
     libssl1.1 \
     openssl
 
-CMD ["echo", "Hello World!"]
+CMD ["echo", "Hello World"]
